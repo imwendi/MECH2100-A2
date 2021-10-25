@@ -1,7 +1,7 @@
 import xlwings
 
 class A2Reader:
-    def __init__(self, datasheet, rows):
+    def __init__(self, datasheet):
         """
         Args:
             datasheet: Filepath to datasheet
@@ -9,30 +9,35 @@ class A2Reader:
         """
         self.wb = xlwings.Book(datasheet)
         self.sheet = self.wb.sheets[0]
-        self.rows = rows
+        self.tabledict = {}
 
-        self.rowdict = {}
-        pos_count = {'DF': 0, 'EF': 0, 'FH': 0, 'FG': 0}
-        pos_tables = [5, 7, 8, 9]
+        # Populate tabledict
+        tab_search_row = 2
+        while len(self.tabledict) < 10:
+            tab_search_val = self.sheet.range(f'D{tab_search_row}').value
+            if tab_search_val is not None and tab_search_val in range(1, 11):
+                new_tab_dict = {}
+                key_search_row = tab_search_row + 1
+                key_search_val = self.sheet.range(f'C{key_search_row}').value
 
-        for row in range(1, self.rows + 1):
-            curr_val = self.sheet.range(f'C{row}').value
-            if curr_val in pos_count.keys():
-                key = f'{curr_val}{pos_tables[pos_count[curr_val]]}'
-                pos_count[curr_val] += 1
-            else:
-                key = curr_val
+                while key_search_val is not None:
+                    new_tab_dict[key_search_val] = key_search_row
+                    key_search_row = key_search_row + 1
+                    key_search_val = self.sheet.range(f'C{key_search_row}').value
 
-            self.rowdict[key] = row
+                self.tabledict[tab_search_val] = new_tab_dict
 
-    def keyrow(self, key: str, table=None):
+            tab_search_row += 1
+
+    def keyrow(self, key, table):
         """
         Returns row by KEY in Column C of the datasheet
 
         Args:
             key: Key to search (non case-sensitive)
+            table: Table to search key in
 
         Returns: Row number
         """
 
-        return self.rowdict[f'{key.upper()}{"" if table is None else table}']
+        return self.tabledict[table][key.upper()]
