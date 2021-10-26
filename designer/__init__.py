@@ -1,3 +1,3 @@
-from designer import (
-    Designer
+from .A2Designer import (
+    A2Designer
 )
