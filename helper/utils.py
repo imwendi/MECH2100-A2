@@ -24,6 +24,10 @@ def rads2rpm(speed):
 def mpa(stress):
     return stress / (10**6)
 
+# MPa to Pa
+def pa(stress):
+    return stress * 10**6
+
 # m to mm
 def mm(dist):
     return dist * 1000

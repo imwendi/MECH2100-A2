@@ -9,27 +9,43 @@ class A2Designer:
         get_spec = lambda key, table:\
             self.sheet.range(f'F{self.r.keyrow(key, table)}').value
 
-        # Retrieve specifications
+        # Retrieve specifications...
+        # OVERALL GEOMETRY
         self.a = meters(get_spec('A', 1))
         self.b = meters(get_spec('B', 1))
         self.theta = np.arctan(self.b / self.a)
 
-        self.DCHORD = meters(get_spec('DCHORD', 1))
-        self.TCHORD = meters(get_spec('TCHORD', 1))
-        self.DBRACE = meters(get_spec('DBRACE', 1))
-        self.TBRACE = meters(get_spec('TBRACE', 1))
+        # CHORD & BRACE GEOMETRY
+        self.dchord = meters(get_spec('DCHORD', 1))
+        self.tchord = meters(get_spec('TCHORD', 1))
+        self.dchord_inner = self.dchord - 2*self.tchord
+        # Chord cross-sectional area
+        self.chord_area = np.pi / 4 * (self.dchord**2 - self.dchord_inner**2)
+
+        self.dbrace = meters(get_spec('DBRACE', 1))
+        self.tbrace = meters(get_spec('TBRACE', 1))
+        self.dbrace_inner = self.dbrace - 2*self.tbrace
+        # Brace cross-sectional area
+        self.brace_area = np.pi / 4 * (self.dbrace**2 - self.dbrace_inner**2)
+
         self.JOINT = get_spec('JOINT', 1)
         self.JOINTTYPE = get_spec('JOINTTYPE', 1)
         self.SG = get_spec('SG', 1)
 
-        self.GRAV = get_spec('GRAV', 3)
-        self.MODULUS = get_spec('MODULUS', 3)
-        self.DENSITY = get_spec('DENSITY', 3)
-        self.POISSON = get_spec('POISSON', 3)
-        self.CHSYIELD = get_spec('CHSYIELD', 3)
-        self.PINYIELD = get_spec('PINYIELD', 3)
-        self.STATICFOS = get_spec('STATICFOS', 3)
-        self.CODE = get_spec('CODE', 3)
+        # STRAIN-GAUGE DATA
+        strain_row = self.r.keyrow('PEAKSTRAIN', 2)
+        self.strains = np.array(self.sheet.range(f'F{strain_row}:H{strain_row}').value) / 10**6
+        cycles_row = self.r.keyrow('NPERHOUR', 2)
+        self.cycles = np.array(self.sheet.range(f'F{cycles_row}:H{cycles_row}').value)
+
+        self.grav = get_spec('GRAV', 3)
+        self.modulus = pa(get_spec('MODULUS', 3))
+        self.density = get_spec('DENSITY', 3)
+        self.poisson = get_spec('POISSON', 3)
+        self.chsyield = get_spec('CHSYIELD', 3)
+        self.pinyield = get_spec('PINYIELD', 3)
+        self.staticfos = get_spec('STATICFOS', 3)
+        self.code = get_spec('CODE', 3)
 
     def xlwrite(self, rowkey, table, col, val):
         """
@@ -49,8 +65,36 @@ class A2Designer:
         """
         For Table 2
         """
-        AC, CE, EG, BD, DF, FH, AB, BC, CD, DE, EF, FG, GH = self.get_member_forces(1)
+        load = 1 / 2
+        forces_dict = self.get_member_forces(load, return_dict=True)
+        sg_force = forces_dict[self.SG]
 
+        return self.strains * self.modulus * self.brace_area / (load / sg_force) * 2
+
+    def get_structure_specs(self):
+        """
+        For Table 4
+        """
+        CENTX = mm(5*self.a / 2)
+        CENTY = mm(self.b / 2)
+
+        chord_len = 20*self.a
+        chord_vol = self.chord_area * chord_len
+        brace_len = self.b*12 + np.linalg.norm([self.a, self.b])*10
+        brace_vol = self.brace_area * brace_len
+
+        print(self.chord_area)
+        print(chord_vol, brace_vol)
+
+        WEIGHT = self.density * (chord_vol + brace_vol)
+
+        grav_force = -WEIGHT * self.grav / 2
+        AGRAVY = grav_force
+        BGRAVX = 2.5 * self.a * grav_force / self.b
+        AGRAVX = -BGRAVX
+        BGRAVY = 0 * AGRAVX
+
+        return np.array([CENTX, CENTY, WEIGHT, AGRAVX, AGRAVY, BGRAVX, BGRAVY])
 
 
     def get_reactions(self, F):

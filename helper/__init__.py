@@ -7,6 +7,7 @@ from .utils import (
     rpm2rads,
     rads2rpm,
     mpa,
+    pa,
     mm,
     meters
 )
