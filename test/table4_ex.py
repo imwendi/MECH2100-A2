@@ -22,5 +22,13 @@ b_vol = b_area * b_len
 
 c_mass = density * c_vol
 b_mass = density * b_vol
+mass = c_mass + b_mass
+g = 9.81
+print(mass)
 
-print(c_mass + b_mass)
+grav_force = -mass * g / 2
+AFY = grav_force
+BFX = 2.5 * a * grav_force / b
+AFX = -BFX
+BFY = 0
+print(AFX, AFY, BFX, BFY)

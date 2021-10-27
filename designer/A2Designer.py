@@ -14,8 +14,10 @@ class A2Designer:
         self.b = meters(get_spec('B', 1))
         self.theta = np.arctan(self.b / self.a)
 
-        self.DCHORD = get_spec('DCHORD', 1)
-        self.TCHORD = get_spec('TCHORD', 1)
+        self.DCHORD = meters(get_spec('DCHORD', 1))
+        self.TCHORD = meters(get_spec('TCHORD', 1))
+        self.DBRACE = meters(get_spec('DBRACE', 1))
+        self.TBRACE = meters(get_spec('TBRACE', 1))
         self.JOINT = get_spec('JOINT', 1)
         self.JOINTTYPE = get_spec('JOINTTYPE', 1)
         self.SG = get_spec('SG', 1)
@@ -43,6 +45,14 @@ class A2Designer:
         cell = col + self.r.keyrow(rowkey, table)
         self.sheet.range(cell).value = val
 
+    def get_peak_forces(self):
+        """
+        For Table 2
+        """
+        AC, CE, EG, BD, DF, FH, AB, BC, CD, DE, EF, FG, GH = self.get_member_forces(1)
+
+
+
     def get_reactions(self, F):
         """
         Computes all pin loads
@@ -63,12 +73,13 @@ class A2Designer:
 
         return np.array([AFX, AFY, BFX, BFY])
 
-    def get_member_forces(self, F):
+    def get_member_forces(self, F, return_dict=False):
         """
         Computes all member forces
 
         Args:
             F: Applied load
+            return_dict: Whether or not to return the forces in a dict
 
         Returns:
             All member forces
@@ -100,6 +111,14 @@ class A2Designer:
         # Method of Joints at G
         GH = -F
 
-        return np.array([AC, CE, EG, BD, DF, FH, AB, BC, CD, DE, EF, FG, GH])
+        forces = np.array([AC, CE, EG, BD, DF, FH, AB, BC, CD, DE, EF, FG, GH])
 
+        if return_dict:
+            forces_dict = {}
+            for key in ['AC', 'CE', 'EG', 'BD', 'DF', 'FH', 'AB', 'BC', 'CD', 'DE', 'EF', 'FG', 'GH']:
+                forces_dict[key] = locals()[key]
 
+            return forces_dict
+
+        else:
+            return forces
