@@ -4,6 +4,7 @@ import numpy as np
 class A2Designer:
     def __init__(self, file):
         self.r = A2Reader(file)
+        self.wb = self.r.wb
         self.sheet = self.r.sheet
 
         get_spec = lambda key, table:\
@@ -47,20 +48,6 @@ class A2Designer:
         self.staticfos = get_spec('STATICFOS', 3)
         self.code = get_spec('CODE', 3)
 
-    def xlwrite(self, rowkey, table, col, val):
-        """
-        Write to Excel sheet
-
-        Args:
-            key: Key of row to write to
-            table: Table key appears in
-            col: Column to write to
-            val: Value to write
-        """
-
-        cell = col + self.r.keyrow(rowkey, table)
-        self.sheet.range(cell).value = val
-
     def get_peak_forces(self):
         """
         For Table 2
@@ -82,9 +69,6 @@ class A2Designer:
         chord_vol = self.chord_area * chord_len
         brace_len = self.b*12 + np.linalg.norm([self.a, self.b])*10
         brace_vol = self.brace_area * brace_len
-
-        print(self.chord_area)
-        print(chord_vol, brace_vol)
 
         WEIGHT = self.density * (chord_vol + brace_vol)
 
@@ -166,3 +150,29 @@ class A2Designer:
 
         else:
             return forces
+
+    def xlwrite(self, table, rowkey, col, val):
+        """
+        Write to Excel sheet
+
+        Args:
+            table: Table key appears in
+            rowkey: Key of row to write to
+            col: Column to write to
+            val: Value to write
+        """
+        cell = col + str(self.r.keyrow(rowkey, table))
+        self.sheet.range(cell).value = val
+
+    def write_excel(self):
+        """
+        Fills the Excel sheet
+        """
+        # Fill tables
+        peak_forces = self.get_peak_forces()
+        self.xlwrite(2, 'PEAKFORCE', 'F', peak_forces)
+        self.xlwrite(4, 'CENTX', 'F', np.reshape(self.get_structure_specs(), (7, 1)))
+        self.xlwrite(5, 'AC', 'F', self.get_member_forces(peak_forces))
+        self.xlwrite(6, 'AFX', 'F', self.get_reactions(peak_forces))
+
+        self.wb.save()
