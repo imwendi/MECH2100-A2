@@ -48,6 +48,9 @@ class A2Designer:
         self.staticfos = get_spec('STATICFOS', 3)
         self.code = get_spec('CODE', 3)
 
+        # Members specified for analysis in the assignment
+        self.members = list(self.r.tabledict[8].keys())
+
     def get_peak_forces(self):
         """
         For Table 2
@@ -80,14 +83,6 @@ class A2Designer:
 
         return np.array([CENTX, CENTY, WEIGHT, AGRAVX, AGRAVY, BGRAVX, BGRAVY])
 
-    def get_nominal_stresses(self, F):
-        d = self.get_member_forces(F, return_dict=True)
-        forces = np.array([d['DF'], d['EF'], d['FH'], d['FG']])
-        areas = np.concatenate((np.ones((1, 1)) * self.chord_area, np.ones((3, 1)) * self.brace_area))
-
-        return forces / areas
-
-
     def get_reactions(self, F):
         """
         Computes all pin loads
@@ -107,6 +102,28 @@ class A2Designer:
         AFY = -F
 
         return np.array([AFX, AFY, BFX, BFY])
+
+    def get_nominal_stresses(self, F):
+        d = self.get_member_forces(F, return_dict=True)
+        forces = np.array([d['DF'], d['EF'], d['FH'], d['FG']])
+        areas = np.concatenate((np.ones((1, 1)) * self.chord_area, np.ones((3, 1)) * self.brace_area))
+
+        return forces / areas
+
+    def get_magnification_factors(self):
+        factors = np.zeros((4, 1))
+        for i, member in enumerate(self.members):
+            if member in ['BC', 'CD', 'DE', 'EF', 'FG']:
+                # The member is a brace
+                factors[i] = 1.2
+            else:
+                # The member is a chord
+                factors[i] = 1.5
+
+        return np.array([1.5, 1.2, 1.5, 1.2])
+
+    def get_adjusted_stresses(self, F):
+        return self.get_nominal_stresses(F) * self.get_magnification_factors()
 
     def get_member_forces(self, F, return_dict=False):
         """
@@ -178,10 +195,22 @@ class A2Designer:
         """
         # Fill tables
         peak_forces = self.get_peak_forces()
+        print("Writing Table 2...")
         self.xlwrite(2, 'PEAKFORCE', 'F', peak_forces)
+        print("Writing Table 4...")
         self.xlwrite(4, 'CENTX', 'F', np.reshape(self.get_structure_specs(), (7, 1)))
+        print("Writing Table 5...")
         self.xlwrite(5, 'AC', 'F', self.get_member_forces(peak_forces))
+        print("Writing Table 6...")
         self.xlwrite(6, 'AFX', 'F', self.get_reactions(peak_forces))
+        print("Writing Table 7...")
         self.xlwrite(7, 'BD', 'F', mpa(self.get_nominal_stresses(peak_forces)))
+        print("Writing Table 8...")
+        print(self.members[0])
+        self.xlwrite(8, self.members[0], 'F', np.reshape(self.get_magnification_factors(), (4, 1)))
+        print("Writing Table 9...")
+        # self.xlwrite(9, self.members[0], 'F', self.get_adjusted_stresses(peak_forces))
+        # print()
+        print("Finished writing to the spreadsheet!!")
 
         self.wb.save()
