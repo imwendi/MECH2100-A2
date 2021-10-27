@@ -80,6 +80,13 @@ class A2Designer:
 
         return np.array([CENTX, CENTY, WEIGHT, AGRAVX, AGRAVY, BGRAVX, BGRAVY])
 
+    def get_nominal_stresses(self, F):
+        d = self.get_member_forces(F, return_dict=True)
+        forces = np.array([d['DF'], d['EF'], d['FH'], d['FG']])
+        areas = np.concatenate((np.ones((1, 1)) * self.chord_area, np.ones((3, 1)) * self.brace_area))
+
+        return forces / areas
+
 
     def get_reactions(self, F):
         """
@@ -129,13 +136,14 @@ class A2Designer:
         CE = AC + np.cos(self.theta) * (BC - CD)
         # Method of Joints at D
         DE = -CD
-        DF = BD + np.cos(self.theta) * (CD- DE)
+        DF = BD + np.cos(self.theta) * (CD - DE)
         # Method of Joints at E
         EF = -DE
         EG = CE + np.cos(self.theta) * (DE - EF)
         # Method of Joints at F
         FG = -EF
-        FH = DF + np.cos(self.theta) * (EF + FG)
+        #FH = DF + np.cos(self.theta) * (EF - FG)
+        FH = DF*0
         # Method of Joints at G
         GH = -F
 
@@ -174,5 +182,6 @@ class A2Designer:
         self.xlwrite(4, 'CENTX', 'F', np.reshape(self.get_structure_specs(), (7, 1)))
         self.xlwrite(5, 'AC', 'F', self.get_member_forces(peak_forces))
         self.xlwrite(6, 'AFX', 'F', self.get_reactions(peak_forces))
+        self.xlwrite(7, 'BD', 'F', mpa(self.get_nominal_stresses(peak_forces)))
 
         self.wb.save()
