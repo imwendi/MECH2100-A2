@@ -10,4 +10,4 @@ d = A2Designer("c998.xlsx")
 d.r = d_helper.r
 d.sheet = d_helper.sheet
 
-print(d.get_fatigue_life(d.get_peak_forces()))
+d.get_results(d.get_peak_forces())

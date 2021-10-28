@@ -2,7 +2,7 @@ from helper import *
 import numpy as np
 from melib.library import ec3life
 
-class A2Designer:
+class A2Solver:
     def __init__(self, file):
         self.r = A2Reader(file)
         self.wb = self.r.wb
@@ -48,8 +48,8 @@ class A2Designer:
         self.modulus = pa(get_spec('MODULUS', 3))
         self.density = get_spec('DENSITY', 3)
         self.poisson = get_spec('POISSON', 3)
-        self.chsyield = get_spec('CHSYIELD', 3)
-        self.pinyield = get_spec('PINYIELD', 3)
+        self.chsyield = pa(get_spec('CHSYIELD', 3))
+        self.pinyield = pa(get_spec('PINYIELD', 3))
         self.staticfos = get_spec('STATICFOS', 3)
         self.code = get_spec('CODE', 3)
 
@@ -136,7 +136,8 @@ class A2Designer:
         forces_dict = self.get_member_forces(load, return_dict=True)
         sg_force = forces_dict[self.sg]
 
-        return self.strains * self.modulus * self.brace_area / (load / sg_force) * 2
+        return self.strains * self.modulus *\
+               self.brace_area / (load / sg_force) * 2
 
     def get_structure_specs(self):
         """
@@ -217,6 +218,38 @@ class A2Designer:
 
         return overall_ec3life
 
+    def get_min_pin_diams(self, F):
+        """
+        Minimum pin diameters for a given load
+        Args:
+            F: Load
+
+        Returns:
+            Diameters in meters
+        """
+        total_pin_loads = -self.get_reactions(F) +\
+                      np.reshape(self.get_structure_specs()[3:], (4, 1))
+
+        FA = 0.5 \
+            * np.max(np.linalg.norm(total_pin_loads[:2, :], axis=0))
+        FB = 0.5 \
+            * np.max(np.linalg.norm(total_pin_loads[2:, :], axis=0))
+        ADIA = np.sqrt(4*FA*self.staticfos / (self.pinyield/2 * np.pi))
+        BDIA = np.sqrt(4*FB*self.staticfos / (self.pinyield/2 * np.pi))
+
+        return np.array([ADIA, BDIA])
+
+    def get_results(self, F):
+        """
+        For Table 10
+
+        """
+        life = self.get_fatigue_life(F)
+        # Diameters are converted to mm
+        ADIA, BDIA = mm(self.get_min_pin_diams(F))
+
+        return np.reshape(np.array([life, ADIA, BDIA]), (3, 1))
+
     def xlwrite(self, table, rowkey, col, val):
         """
         Write to Excel sheet
@@ -250,14 +283,17 @@ class A2Designer:
         self.xlwrite(6, 'AFX', 'F', -self.get_reactions(peak_forces))
 
         print("Writing Table 7...")
-        self.xlwrite(7, 'BD', 'F', mpa(self.get_nominal_stresses(peak_forces)))
+        tab789_first_key = list(self.r.tabledict[8].keys())[0]
+        self.xlwrite(7, tab789_first_key, 'F', mpa(self.get_nominal_stresses(peak_forces)))
 
         print("Writing Table 8...")
-        tab789_first_key = list(self.r.tabledict[8].keys())[0]
         self.xlwrite(8, tab789_first_key, 'F', np.reshape(self.get_magnification_factors(), (4, 1)))
 
         print("Writing Table 9...")
         self.xlwrite(9, tab789_first_key, 'F', self.get_adjusted_stresses(peak_forces))
+
+        print("Writing Table 10...")
+        self.xlwrite(10, 'LIFE', 'F', self.get_results(peak_forces))
 
         print()
         print("Finished writing to the spreadsheet!!")
