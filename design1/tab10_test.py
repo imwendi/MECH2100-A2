@@ -1,4 +1,5 @@
 from designer import *
+from melib.library import ec3life
 from helper import *
 
 # Helper to retrieve the correct sheet & row/table dicts
@@ -9,4 +10,4 @@ d = A2Designer("c998.xlsx")
 d.r = d_helper.r
 d.sheet = d_helper.sheet
 
-d.write_excel()
+print(d.get_fatigue_life(d.get_peak_forces()))
