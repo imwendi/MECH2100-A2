@@ -30,8 +30,8 @@ class A2Solver:
         # Brace cross-sectional area
         self.brace_area = np.pi / 4 * (self.dbrace**2 - self.dbrace_inner**2)
 
-        self.joint = get_spec('joint', 1)
-        self.jointtype = get_spec('jointtype', 1)
+        self.joint = get_spec('JOINT', 1)
+        self.jointtype = get_spec('JOINTTYPE', 1)
         self.sg = get_spec('sg', 1)
 
         # STRAIN-GAUGE DATA
