@@ -132,12 +132,12 @@ class A2Solver:
         """
         For Table 2
         """
-        load = 1 / 2
+        load = 1
         forces_dict = self.get_member_forces(load, return_dict=True)
         sg_force = forces_dict[self.sg]
 
-        return self.strains * self.modulus *\
-               self.brace_area / (load / sg_force) * 2
+        return 2 * self.strains * self.modulus * \
+               self.brace_area * (load / 2) / sg_force
 
     def get_structure_specs(self):
         """
@@ -298,4 +298,4 @@ class A2Solver:
         print()
         print("Finished writing to the spreadsheet!!")
 
-        self.wb.save()
+        self.r.wb.save()
