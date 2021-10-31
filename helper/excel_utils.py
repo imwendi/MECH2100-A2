@@ -20,7 +20,7 @@ class A2Reader:
                 key_search_row = tab_search_row + 1
                 key_search_val = self.sheet.range(f'C{key_search_row}').value
 
-                while key_search_val is not None:
+                while key_search_val is not None and key_search_val != 'Table':
                     new_tab_dict[key_search_val] = key_search_row
                     key_search_row = key_search_row + 1
                     key_search_val = self.sheet.range(f'C{key_search_row}').value
