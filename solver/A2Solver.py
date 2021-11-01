@@ -132,12 +132,12 @@ class A2Solver:
         """
         For Table 2
         """
-        load = 1 / 2
+        load = 1
         forces_dict = self.get_member_forces(load, return_dict=True)
         sg_force = forces_dict[self.sg]
 
-        return self.strains * self.modulus *\
-               self.brace_area / (load / sg_force) * 2
+        return 2 * self.strains * self.modulus * \
+               self.brace_area * (load / 2) / sg_force
 
     def get_structure_specs(self):
         """
@@ -164,7 +164,14 @@ class A2Solver:
     def get_nominal_stresses(self, F):
         d = self.get_member_forces(F, return_dict=True)
         forces = np.array([d[key] for key in self.members])
-        areas = np.concatenate((np.ones((1, 1)) * self.chord_area, np.ones((3, 1)) * self.brace_area))
+
+        areas = np.zeros((4, 1))
+        for i, member in enumerate(self.members):
+            if member in ['AB', 'BC', 'CD', 'DE', 'EF', 'FG', 'GH']:
+                areas[i] = self.brace_area
+            else:
+                areas[i] = self.chord_area
+
 
         return forces / areas
 
@@ -298,4 +305,4 @@ class A2Solver:
         print()
         print("Finished writing to the spreadsheet!!")
 
-        self.wb.save()
+        self.r.wb.save()

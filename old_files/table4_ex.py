@@ -24,7 +24,7 @@ c_mass = density * c_vol
 b_mass = density * b_vol
 mass = c_mass + b_mass
 g = 9.81
-#print(mass)
+print(mass)
 
 grav_force = -mass * g / 2
 AFY = grav_force
